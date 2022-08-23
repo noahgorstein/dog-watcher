@@ -2,10 +2,7 @@
 
 A TUI to manage processes in Stardog.
 
-
-
-https://user-images.githubusercontent.com/23270779/186175016-9025c9cf-a3ff-4027-8de3-d8b76d9dedc2.mp4
-
+https://user-images.githubusercontent.com/23270779/186180073-974271ee-badd-48cb-a361-40d497717bf0.mp4
 
 
 `dog-watcher` currently supports:
