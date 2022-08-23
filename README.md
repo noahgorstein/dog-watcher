@@ -28,6 +28,19 @@ Clone this repo, build from source with `cd dog-watcher && go build`, then move 
 
 Run the app by running `dog-watcher` in a terminal. See `dog-watcher --help` and [configuration](#configuration) section below for details.
 
+## Controls
+
+| Key | Description |
+| ---- | ---------- |
+| `up`/`down` | move table cursor |
+| `left`/`right` | page table |
+| `/` | filter table |
+| `esc` | clear filter |
+| `ctrl+x` | kill highlighted process |
+| `d`/`i` | increase/decrease refresh rate |
+| `ctrl+c` | exit |
+
+
 ## Configuration
 
 `dog-watcher` can be configured in a yaml file at `$HOME/.dog-watcher.yaml`.
