@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
@@ -14,47 +15,75 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Credits: https://github.com/carolynvs/stingoftheviper
-
 const (
 	defaultConfigFilename = ".dog-watcher"
 	envPrefix             = "DOG_WATCHER"
 )
 
+// getHTTPClient obtains the *http.Client with the appropriate auth
+// that can then be used to create a stardog.Client
+func getHTTPClient(token, username, password string) *http.Client {
+
+	if token != "" {
+		t := &stardog.BearerAuthTransport{
+			BearerToken: token,
+		}
+		return t.Client()
+	}
+
+	t := &stardog.BasicAuthTransport{
+		Username: username,
+		Password: password,
+	}
+	return t.Client()
+}
+
 func NewRootCommand() *cobra.Command {
+	token := ""
 	username := ""
 	password := ""
 	endpoint := ""
 
 	rootCmd := &cobra.Command{
-		Use:   "guard-dog",
-		Short: "a TUI to manage users, roles and permissions in Stardog ⭐🐕",
+		Version: "0.2.0",
+		Use:     "dog-watcher",
+		Short:   "a TUI to manage procceses in Stardog",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return initializeConfig(cmd)
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			client := stardog.NewClient(endpoint, username, password)
-			_, err := client.ServerAdmin.Alive(context.Background())
-			if err != nil {
 
-				fmt.Printf("Unable to connect to the Stardog server: %s with user: %s\n", endpoint, username)
+			httpClient := getHTTPClient(token, username, password)
+			client, err := stardog.NewClient(endpoint, httpClient)
+			if err != nil {
+				fmt.Printf("unable to create client: %v\n", err.Error())
 				os.Exit(1)
 			}
 
-			bubble := tui.NewModel(client)
+			isAlive, _, err := client.ServerAdmin.IsAlive(context.Background())
+			if err != nil || !*isAlive {
+				fmt.Println("stardog server is not alive")
+				if err != nil {
+					fmt.Printf("err: %v\n", err.Error())
+
+				}
+				os.Exit(1)
+			}
+
+			bubble := tui.NewModel(client, endpoint)
 			p := tea.NewProgram(bubble, tea.WithAltScreen())
 
 			if err := p.Start(); err != nil {
 				fmt.Println("Error running program:", err)
 				os.Exit(1)
 			}
-
 		},
 	}
 
 	rootCmd.Flags().StringVarP(&username, "username", "u", "admin", "username")
 	rootCmd.Flags().StringVarP(&password, "password", "p", "admin", "password")
 	rootCmd.Flags().StringVarP(&endpoint, "server", "s", "http://localhost:5820", "server")
+	rootCmd.Flags().StringVarP(&token, "token", "t", "", "token")
 
 	return rootCmd
 }
