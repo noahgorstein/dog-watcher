@@ -1,6 +1,7 @@
 package statusbar
 
 import (
+	"context"
 	"time"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -16,6 +17,8 @@ type Bubble struct {
 	help          help.Model
 	keys          KeyMap
 	Styles        Styles
+	username      string
+	endpoint      string
 
 	StatusMessageLifetime time.Duration
 
@@ -23,15 +26,25 @@ type Bubble struct {
 	statusMessageTimer *time.Timer
 }
 
-func New(stardogClient stardog.Client) Bubble {
+func New(stardogClient stardog.Client, endpoint string) Bubble {
 	styles := DefaultStyles()
 	help := help.NewModel()
 	help.Styles.ShortKey = styles.HelpKeyStyle
 	help.Styles.ShortDesc = styles.HelpTextStyle
 	help.Styles.ShortSeparator = styles.HelpTextStyle
 
+	var username string
+	user, _, err := stardogClient.User.WhoAmI(context.Background())
+	if err != nil {
+		username = "unknown"
+	} else {
+		username = *user
+	}
+
 	return Bubble{
 		stardogClient: stardogClient,
+		username:      username,
+		endpoint:      endpoint,
 		Styles:        styles,
 		help:          help,
 		keys:          Keys,
@@ -109,7 +122,7 @@ func (b Bubble) View() string {
 	endpoint := lipgloss.NewStyle().
 		Align(lipgloss.Right).
 		Width(int(float64(b.width) * 0.5)).
-		Render(b.Styles.EndpointStyle.Render(b.stardogClient.Username + "@" + b.stardogClient.BaseURL))
+		Render(b.Styles.EndpointStyle.Render(b.username + "@" + b.endpoint))
 
 	return b.Styles.StatusBarStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,

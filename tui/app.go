@@ -54,14 +54,15 @@ type Model struct {
 	table         table.Model
 	updateDelay   time.Duration
 	stardogClient *stardog.Client
+	endpoint      string
 	statusbar     statusbar.Bubble
 	width         int
 	height        int
 }
 
-func NewModel(stardogClient *stardog.Client) Model {
+func NewModel(stardogClient *stardog.Client, endpoint string) Model {
 	c := stardogClient
-	sb := statusbar.New(*c)
+	sb := statusbar.New(*c, endpoint)
 	sb.StatusMessageLifetime = time.Duration(15 * time.Second)
 	t := table.New(generateColumns()).Focused(true).SelectableRows(true).
 		Border(tableBorder).WithPageSize(10).HeaderStyle(tableHeaderStyle).
@@ -77,6 +78,7 @@ func NewModel(stardogClient *stardog.Client) Model {
 		updateDelay:   time.Second * 5,
 		stardogClient: c,
 		statusbar:     sb,
+		endpoint:      endpoint,
 	}
 }
 
@@ -85,7 +87,7 @@ type successMsg struct {
 }
 
 type getServerProcessesMsg struct {
-	processes stardog.Processes
+	processes *[]stardog.Process
 }
 
 type errMsg struct{ err error }
@@ -98,7 +100,7 @@ func (m Model) getServerProcessesCmd(delayed bool) tea.Cmd {
 		if delayed {
 			time.Sleep(m.updateDelay)
 		}
-		processes, err := m.stardogClient.ServerAdmin.GetProcesses(context.Background())
+		processes, _, err := m.stardogClient.ServerAdmin.GetProcesses(context.Background())
 		if err != nil {
 			return errMsg{
 				err: err,
@@ -129,13 +131,13 @@ func (m Model) killProcessCmd(processId string, processType string) tea.Cmd {
 
 func generateColumns() []table.Column {
 	return []table.Column{
-		table.NewFlexColumn(columnKeyID, "ID", 25).WithFiltered(true),
-		table.NewFlexColumn(columnKeyDb, "Database", 16).WithFiltered(true),
-		table.NewFlexColumn(columnKeyElapsedTime, "Elapsed Time", 14),
-		table.NewFlexColumn(columnKeyUser, "User", 16).WithFiltered(true),
-		table.NewColumn(columnKeyStatus, "Status", 12).WithFiltered(true),
-		table.NewColumn(columnKeyType, "Type", 20).WithFiltered(true),
-		table.NewColumn(columnKeyProgress, "Progress", 30),
+		table.NewFlexColumn(columnKeyID, "ID", 1).WithFiltered(true),
+		table.NewFlexColumn(columnKeyDb, "Database", 1).WithFiltered(true),
+		table.NewFlexColumn(columnKeyElapsedTime, "Elapsed Time", 1),
+		table.NewFlexColumn(columnKeyUser, "User", 1).WithFiltered(true),
+		table.NewFlexColumn(columnKeyStatus, "Status", 1).WithFiltered(true),
+		table.NewFlexColumn(columnKeyType, "Type", 1).WithFiltered(true),
+		table.NewFlexColumn(columnKeyProgress, "Progress", 1),
 	}
 }
 
@@ -200,18 +202,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m Model) View() string {
-
+func logo() string {
 	logo := strings.Builder{}
 	logo.WriteString(" ____   __    ___    _  _   __  ____  ___  _  _  ____  ____ \n")
 	logo.WriteString("(    \\ /  \\  / __)  / )( \\ / _\\(_  _)/ __)/ )( \\(  __)(  _ \n")
 	logo.WriteString(" ) D ((  O )( (_ \\  \\ /\\ //    \\ )( ( (__ ) __ ( ) _)  )   /\n")
 	logo.WriteString("(____/ \\__/  \\___/  (_/\\_)\\_/\\_/(__) \\___)\\_)(_/(____)(__\\_)")
+	return logo.String()
+}
+
+func (m Model) View() string {
 
 	body := strings.Builder{}
 	body.WriteString(lipgloss.NewStyle().Bold(true).PaddingTop(1).PaddingLeft(1).
-		Foreground(lipgloss.AdaptiveColor{Light: string(lipgloss.Color("38")), Dark: string(lipgloss.Color("152"))}).
-		Render(logo.String()))
+		Foreground(lipgloss.AdaptiveColor{
+			Light: string(lipgloss.Color("38")),
+			Dark:  string(lipgloss.Color("152")),
+		}).Render(logo()))
+
 	body.WriteRune('\n')
 	body.WriteRune('\n')
 	body.WriteString(lipgloss.NewStyle().Bold(true).Italic(true).PaddingLeft(1).Render("a Stardog process manager"))
@@ -237,7 +245,7 @@ func (m Model) View() string {
 					Dark:  string(nord8),
 				}).Render("i"))))
 	body.WriteString(m.table.View())
-  body.WriteRune('\n')
+	body.WriteRune('\n')
 
 	footer := strings.Builder{}
 	footer.WriteString(m.statusbar.View())
@@ -263,7 +271,7 @@ func generateRowsFromData(data getServerProcessesMsg) []table.Row {
 
 	rows := []table.Row{}
 
-	for _, ps := range data.processes {
+	for _, ps := range *data.processes {
 		row := table.NewRow(table.RowData{
 			columnKeyID:          ps.ID,
 			columnKeyDb:          ps.Db,
