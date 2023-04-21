@@ -47,7 +47,7 @@ func NewRootCommand() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Version: "0.2.0",
 		Use:     "dog-watcher",
-		Short:   "a TUI to manage procceses in Stardog",
+		Short:   "a TUI to manage processes in Stardog",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return initializeConfig(cmd)
 		},
