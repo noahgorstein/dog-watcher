@@ -2,8 +2,7 @@
 
 A TUI to manage processes in Stardog.
 
-https://user-images.githubusercontent.com/23270779/186180073-974271ee-badd-48cb-a361-40d497717bf0.mp4
-
+![demo](https://user-images.githubusercontent.com/23270779/233536191-2e65f670-4353-4b55-afb7-41175dbb93d2.gif)
 
 `dog-watcher` currently supports:
 - viewing processes in Stardog 
@@ -77,8 +76,4 @@ Alternatively, `dog-watcher` can be configured via environment variables, or via
 - [bubble-table](https://github.com/Evertras/bubble-table)
 - [lipgloss](https://github.com/charmbracelet/lipgloss)
 - [go-stardog](https://github.com/noahgorstein/go-stardog)
-
-## Notes
-
-- 🚧 this project is under active development and is relatively unstable. Please file an issue if you see a bug or have suggestions on how to improve the app.
 
